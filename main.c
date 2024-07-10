@@ -16,7 +16,7 @@
 #define numbered_precision 0            //whether to display the calculation index or not (0-1)
 #define error_tolerance 0.001           //error tolerance on mode 1 calculations (float)
 #define mode 0                          //0 = function, 1 = general
-#define graph_character '@'
+#define graph_character '.'
 
 //Display pixels values
 char pixel[width][height];
