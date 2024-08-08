@@ -3,27 +3,33 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
+#include <conio.h>
 
 //--configurations------------------------------------------------------------------------
 #define DEBUG 0
-#define height 80                       //Display height (int > 0)
-#define width 240                       //Display width (best if a*height)
+#define height 18                       //Display height (int > 0)
+#define width 40                        //Display width (best if a*height)
 #define background_density -1           //Display dotted background (-1 for none)
-#define axis_density 10                 //Pixel/graph display proportion (int > 0)
-#define axis_numbered_graduation 0      //whether to display a value on each graduation (0-1)   ///broken
-#define axis_graduation_size 1          //axis number indication size extension (int <= 0)
+int     axis_density = 1;                  //Pixel/graph display proportion (int > 0)
+#define axis_numbered_graduation 1      //whether to display a value on each graduation (0-1)   ///broken
+#define axis_graduation_size 0          //axis number indication size extension (int <= 0)
 #define line_precision 100              //Number of repeated calculations (int > 0)
 #define numbered_precision 0            //whether to display the calculation index or not (0-1)
 #define error_tolerance 0.001           //error tolerance on mode 1 calculations (float)
 #define mode 0                          //0 = function, 1 = general
 #define graph_character '@'
 
+//Global Variables------------------------------------------------------------------------
+char getchKey;
+int xOffset = 0;
+int yOffset = 0;
+
 //Display pixels values
 char pixel[width][height];
 
-//function used on mode 1, input the formula in return
+//function used on mode 0, input the formula in return
 float function(float x, float a){
-    return pow(tan(a*sqrt(x)),3);
+    return a*sin(x);
 }
 
 //procedure to clear all screen and draw borders
@@ -56,7 +62,7 @@ void printScreen(){
 
 //draw the xy axis lines (x axis is 2* wider to compensate tall character dimensions)
 void drawAxis(){
-    int value = -width/2;
+    int value = -height/2;
     for(int i = 0; i < height; i++){ //y axis
         if(value%axis_density==0){
             if(axis_numbered_graduation == 0) pixel[width/2][i] = '+';
@@ -71,6 +77,7 @@ void drawAxis(){
         else pixel[width/2][i] = '|';
         value++;
     }
+    value = -width/2;
     for(int i = 0; i < width; i++){ //x axis
         if(value%(axis_density*2)==0) {
             if(axis_numbered_graduation == 0) pixel[i][height/2] = '+';
@@ -85,7 +92,6 @@ void drawAxis(){
         else pixel[i][height/2] = '-';
         value++;
     }
-    value = -height/2;
 }
 
 //draw the graph 
@@ -131,6 +137,15 @@ void drawGraph(float a){
     }
 }
 
+void inputUpdate(){
+    if(kbhit()){
+    getchKey = getch();
+    if(getchKey == 'p') axis_density++;
+    else if(getchKey == 'o') axis_density--;
+    if(axis_density < 1) axis_density = 1;
+    }
+}
+
 int main(){
     struct timespec ts, ts2; //request, remaining
     ts.tv_nsec = 100000000L; //delay in nanoseconds (long int)
@@ -139,11 +154,14 @@ int main(){
     float va = 0.3;
     float a = 1;
     for(;; a+=va){
+    
+        inputUpdate();
+    
         clearScreen();
         drawAxis();
         drawGraph(a);
-        system("cls");
-        printf("a = %.2f\n", a);
+        system("clear");
+        printf("a = %.2f  z = %d\n", a, axis_density);
         printScreen();
 
         nanosleep(&ts, &ts2);
@@ -156,4 +174,3 @@ int main(){
 //-(float)i/(axis_density)                      //each i lowers y until its on the bottom of the display
 //+(i1*(1.0/(axis_density*2.0))/line_precision) //for each i the value is subdivided by <precision> up and down
 //-1.0/(axis_density*4.0);                      //starting from lower values and incrementing to top values by i1
-
