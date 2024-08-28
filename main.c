@@ -10,13 +10,13 @@
 #define height 18                       //Display height (int > 0)
 #define width 40                        //Display width (best if a*height)
 #define background_density -1           //Display dotted background (-1 for none)
-int     axis_density = 1;                  //Pixel/graph display proportion (int > 0)
+int     axis_density = 1;               //Pixel/graph display proportion (int > 0) (also known as Zoom)
 #define axis_numbered_graduation 1      //whether to display a value on each graduation (0-1)   ///broken
 #define axis_graduation_size 0          //axis number indication size extension (int <= 0)
 #define line_precision 100              //Number of repeated calculations (int > 0)
 #define numbered_precision 0            //whether to display the calculation index or not (0-1)
 #define error_tolerance 0.001           //error tolerance on mode 1 calculations (float)
-#define mode 0                          //0 = function, 1 = general
+#define mode 0                       //0 = function, 1 = general
 #define graph_character '@'
 
 //Global Variables------------------------------------------------------------------------
@@ -28,8 +28,12 @@ int yOffset = 0;
 char pixel[width][height];
 
 //function used on mode 0, input the formula in return
+#define aMax 10
+#define aMin -2
+#define aStep 0.5
+#define aStart 1
 float function(float x, float a){
-    return a*sin(x);
+    return pow(x,2)*(x+3)-pow(x,4)+sin(a*x);
 }
 
 //procedure to clear all screen and draw borders
@@ -140,8 +144,10 @@ void drawGraph(float a){
 void inputUpdate(){
     if(kbhit()){
     getchKey = getch();
+    
     if(getchKey == 'p') axis_density++;
     else if(getchKey == 'o') axis_density--;
+    
     if(axis_density < 1) axis_density = 1;
     }
 }
@@ -151,8 +157,8 @@ int main(){
     ts.tv_nsec = 100000000L; //delay in nanoseconds (long int)
     ts.tv_sec = 0;           //delay in seconds
 
-    float va = 0.3;
-    float a = 1;
+    float va = aStep;
+    float a = aStart;
     for(;; a+=va){
     
         inputUpdate();
@@ -161,11 +167,11 @@ int main(){
         drawAxis();
         drawGraph(a);
         system("clear");
-        printf("a = %.2f  z = %d\n", a, axis_density);
+        printf("a = %.2f  z = %d; x = %d; y = %d\n", a, axis_density, xOffset, yOffset);
         printScreen();
 
         nanosleep(&ts, &ts2);
-        if(a > 6 || a < -6) va *= -1;
+        if(a > aMax || a < aMin) va *= -1;
     }
 }
 
