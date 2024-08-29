@@ -7,12 +7,12 @@
 
 //--configurations------------------------------------------------------------------------
 #define DEBUG 0
-#define height 18                       //Display height (int > 0)
-#define width 40                        //Display width (best if a*height)
+#define height 20                       //Display height (int > 0)
+#define width 60                       //Display width (best if a*height)
 #define background_density -1           //Display dotted background (-1 for none)
 int     axis_density = 1;               //Pixel/graph display proportion (int > 0) (also known as Zoom)
 #define axis_numbered_graduation 1      //whether to display a value on each graduation (0-1)   ///broken
-#define axis_graduation_size 0          //axis number indication size extension (int <= 0)
+#define axis_graduation_size 0        //axis number indication size extension (int <= 0)
 #define line_precision 100              //Number of repeated calculations (int > 0)
 #define numbered_precision 0            //whether to display the calculation index or not (0-1)
 #define error_tolerance 0.001           //error tolerance on mode 1 calculations (float)
@@ -26,14 +26,15 @@ int yOffset = 0;
 
 //Display pixels values
 char pixel[width][height];
+int pixelx, pixely;
 
 //function used on mode 0, input the formula in return
-#define aMax 10
+#define aMax 2
 #define aMin -2
 #define aStep 0.5
 #define aStart 1
 float function(float x, float a){
-    return pow(x,2)*(x+3)-pow(x,4)+sin(a*x);
+    return 2*sin(a*x)+pow(x,2)/10;
 }
 
 //procedure to clear all screen and draw borders
@@ -67,34 +68,41 @@ void printScreen(){
 //draw the xy axis lines (x axis is 2* wider to compensate tall character dimensions)
 void drawAxis(){
     int value = -height/2;
+    pixelx = width/2 - xOffset*axis_density*2;
+    if(pixelx < 0) pixelx = 0;
+    if(pixelx >= width) pixelx = width-1;
     for(int i = 0; i < height; i++){ //y axis
-        if(value%axis_density==0){
-            if(axis_numbered_graduation == 0) pixel[width/2][i] = '+';
-            else pixel[width/2][i] = abs(value/axis_density)%10 + '0';
+        if(value%axis_density==0 ){
+            if(axis_numbered_graduation == 0) pixel[pixelx][i] = '+';
+            else pixel[pixelx][i] = abs(value/axis_density-yOffset)%10 + '0';
             for(int j = 1; j <= axis_graduation_size*2; j++){
                 if((width/2)-j > 0){
-                    pixel[(width/2)+j][i] = '-';
-                    pixel[(width/2)-j][i] = '-';
+                    pixel[(width/2)+j - xOffset*axis_density*2][i] = '-';
+                    pixel[(width/2)-j - xOffset*axis_density*2][i] = '-';
                 }
             }
         }
-        else pixel[width/2][i] = '|';
+        else pixel[pixelx][i] = '|';
         value++;
     }
     value = -width/2;
+    pixely = height/2 + yOffset*axis_density;
+    if(pixely < 0) pixely = 0;
+    if(pixely >= height) pixely = height-1;
     for(int i = 0; i < width; i++){ //x axis
         if(value%(axis_density*2)==0) {
-            if(axis_numbered_graduation == 0) pixel[i][height/2] = '+';
-            else pixel[i][height/2] = abs(value/(axis_density*2))%10 + '0';
+            if(axis_numbered_graduation == 0) pixel[i][pixely] = '+';
+            else pixel[i][pixely] = abs(value/(axis_density*2)+xOffset)%10 + '0';
             for(int j = 1; j <= axis_graduation_size; j++){
                 if((height/2)-j > 0){
-                    pixel[i][(height/2)+j] = '|';
-                    pixel[i][(height/2)-j] = '|';
+                    pixel[i][(height/2)+j + yOffset*axis_density] = '|';
+                    pixel[i][(height/2)-j + yOffset*axis_density] = '|';
                 }
             }
         }
-        else pixel[i][height/2] = '-';
+        else pixel[i][pixely] = '-';
         value++;
+        pixel[width/2][height/2] = 'X';
     }
 }
 
@@ -103,11 +111,11 @@ void drawGraph(float a){
     double x, y;
     switch(mode){
         case 0: ; //mode 0: checking each graph x values for display pixels
-            x = -(width)/(axis_density*4.0);                //x starts on the further left
+            x = -(width)/(axis_density*4.0)+xOffset;                //x starts on the further left
             for(int i = 0; i < width; i++){                 //i = x equivalent of pixel position
                 for(int j = 0; j < line_precision; j++){    //x precision subdivisions
                     //y pixel calculation: y_further_up-f(x + precision_subdivision)*proportion
-                    y = round(-(function(x+ (j*(1.0/(axis_density*2.0))/line_precision -1.0/(axis_density*4.0)) , a)*axis_density)+((height)/2.0));
+                    y = round(-(function(x+ (j*(1.0/(axis_density*2.0))/line_precision -1.0/(axis_density*4.0)) , a)*axis_density)+((height)/2.0))+yOffset*axis_density;
                     if(y >= 0 && y <= height-1){            //if inside display, draw it
                         if(numbered_precision) pixel[i][(int)y] = j + '0';
                         else pixel[i][(int)y] = graph_character;
@@ -145,16 +153,21 @@ void inputUpdate(){
     if(kbhit()){
     getchKey = getch();
     
-    if(getchKey == 'p') axis_density++;
-    else if(getchKey == 'o') axis_density--;
-    
+    switch(getchKey){
+        case 'p': axis_density++; break;
+        case 'o': axis_density--; break;
+        case 'w': yOffset++; break;
+        case 'a': xOffset--; break;
+        case 's': yOffset--; break;
+        case 'd': xOffset++; break;
+    }
     if(axis_density < 1) axis_density = 1;
     }
 }
 
 int main(){
     struct timespec ts, ts2; //request, remaining
-    ts.tv_nsec = 100000000L; //delay in nanoseconds (long int)
+    ts.tv_nsec = 200000000L; //delay in nanoseconds (long int)
     ts.tv_sec = 0;           //delay in seconds
 
     float va = aStep;
@@ -162,11 +175,10 @@ int main(){
     for(;; a+=va){
     
         inputUpdate();
-    
         clearScreen();
         drawAxis();
         drawGraph(a);
-        system("clear");
+        system("cls");
         printf("a = %.2f  z = %d; x = %d; y = %d\n", a, axis_density, xOffset, yOffset);
         printScreen();
 
