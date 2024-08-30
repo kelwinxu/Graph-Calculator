@@ -23,6 +23,7 @@ int     axis_density = 1;               //Pixel/graph display proportion (int > 
 char getchKey;
 int xOffset = 0;
 int yOffset = 0;
+int moveSpeed = 1;
 
 //Display pixels values
 char pixel[width][height];
@@ -31,10 +32,10 @@ int pixelx, pixely;
 //function used on mode 0, input the formula in return
 #define aMax 2
 #define aMin -2
-#define aStep 0.5
+#define aStep 0
 #define aStart 1
 float function(float x, float a){
-    return 2*sin(a*x)+pow(x,2)/10;
+    return 2*sin(a*pow(x,2));
 }
 
 //procedure to clear all screen and draw borders
@@ -150,16 +151,19 @@ void drawGraph(float a){
 }
 
 void inputUpdate(){
-    if(kbhit()){
+    if(kbhit() || aStep == 0){
+    printf("w,a,s,d to move; o,p to zoom; u,i to change speed");
     getchKey = getch();
     
     switch(getchKey){
         case 'p': axis_density++; break;
         case 'o': axis_density--; break;
-        case 'w': yOffset++; break;
-        case 'a': xOffset--; break;
-        case 's': yOffset--; break;
-        case 'd': xOffset++; break;
+        case 'w': yOffset+=moveSpeed; break;
+        case 'a': xOffset-=moveSpeed; break;
+        case 's': yOffset-=moveSpeed; break;
+        case 'd': xOffset+=moveSpeed; break;
+        case 'u': moveSpeed--; break;
+        case 'i': moveSpeed++; break;
     }
     if(axis_density < 1) axis_density = 1;
     }
@@ -179,10 +183,10 @@ int main(){
         drawAxis();
         drawGraph(a);
         system("cls");
-        printf("a = %.2f  z = %d; x = %d; y = %d\n", a, axis_density, xOffset, yOffset);
+        printf("a = %.2f da = %d  (z = %d; x = %d; y = %d) [dxy = %d]\n", a, aStep, axis_density, xOffset, yOffset, moveSpeed);
         printScreen();
 
-        nanosleep(&ts, &ts2);
+        if(aStep != 0) nanosleep(&ts, &ts2);
         if(a > aMax || a < aMin) va *= -1;
     }
 }
