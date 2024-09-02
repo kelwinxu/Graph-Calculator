@@ -15,9 +15,10 @@ int     axis_density = 1;               //Pixel/graph display proportion (int > 
 #define axis_graduation_size 0        //axis number indication size extension (int <= 0)
 #define line_precision 100              //Number of repeated calculations (int > 0)
 #define numbered_precision 0            //whether to display the calculation index or not (0-1)
-#define error_tolerance 0.001           //error tolerance on mode 1 calculations (float)
+#define error_tolerance 0.005           //error tolerance on mode 1 calculations (float)
 #define mode 0                       //0 = function, 1 = general
-#define graph_character '@'
+#define graph1_character '@'
+#define graph2_character '#'
 
 //Global Variables------------------------------------------------------------------------
 char getchKey;
@@ -34,8 +35,15 @@ int pixelx, pixely;
 #define aMin -2
 #define aStep 0
 #define aStart 1
-float function(float x, float a){
-    return 2*sin(a*pow(x,2));
+#define bMax 2
+#define bMin -2
+#define bStep 0
+#define bStart 1
+float function1(float x, float a, float b){
+    return sin(a*x);
+}
+float function2(float x, float a, float b){
+    return cos(a*x);
 }
 
 //procedure to clear all screen and draw borders
@@ -108,38 +116,48 @@ void drawAxis(){
 }
 
 //draw the graph 
-void drawGraph(float a){
-    double x, y;
+void drawGraph(float a, float b){
+    double x;
     switch(mode){
         case 0: ; //mode 0: checking each graph x values for display pixels
+            double y1, y2;
             x = -(width)/(axis_density*4.0)+xOffset;                //x starts on the further left
             for(int i = 0; i < width; i++){                 //i = x equivalent of pixel position
                 for(int j = 0; j < line_precision; j++){    //x precision subdivisions
                     //y pixel calculation: y_further_up-f(x + precision_subdivision)*proportion
-                    y = round(-(function(x+ (j*(1.0/(axis_density*2.0))/line_precision -1.0/(axis_density*4.0)) , a)*axis_density)+((height)/2.0))+yOffset*axis_density;
-                    if(y >= 0 && y <= height-1){            //if inside display, draw it
-                        if(numbered_precision) pixel[i][(int)y] = j + '0';
-                        else pixel[i][(int)y] = graph_character;
+                    y1 = round(-(function1(x+ (j*(1.0/(axis_density*2.0))/line_precision -1.0/(axis_density*4.0)) , a, b)*axis_density)+((height)/2.0))+yOffset*axis_density;
+                    y2 = round(-(function2(x+ (j*(1.0/(axis_density*2.0))/line_precision -1.0/(axis_density*4.0)) , a, b)*axis_density)+((height)/2.0))+yOffset*axis_density;
+                    if(y1 >= 0 && y1 <= height-1){            //if inside display, draw it
+                        if(numbered_precision) pixel[i][(int)y1] = j + '0';
+                        else pixel[i][(int)y1] = graph1_character;
+                    }
+                    if(y2 >= 0 && y2 <= height-1){            //if inside display, draw it
+                        if(numbered_precision) pixel[i][(int)y2] = j + '0';
+                        else pixel[i][(int)y2] = graph2_character;
                     }
                 }
                 x += (float)(1.0/(axis_density*2.0));       //i++, x increment equivalent
             }
         break;
         case 1: ; //mode 1: checking each display pixels for graph correlation
+            double y;
             for(int i = 0; i < height; i++){                    //for every vertical pixel i
                 for(int i1 = 0; i1 < line_precision; i1++){     //y precision subdivisions
                     //calculate value equivalent of y in that pixel height for every i and subdivisions
-                    y = (height)/(2.0*axis_density) -(float)i/(axis_density) +(i1*(1.0/(axis_density*2.0))/line_precision) -1.0/(axis_density*4.0);
-                    if(DEBUG) printf("y%d: %f \n", i, y);       //for every vertical pixel j
+                    y = (height)/(2.0*axis_density) -(float)i/(axis_density) +(i1*(1.0/(axis_density*2.0))/line_precision) -1.0/(axis_density*4.0) +yOffset;
+                    if(DEBUG) printf("y1%d: %f \n", i, y);     //for every vertical pixel j
                     for(int j = 0; j < width; j++){             //y precision subdivisions
                         for(int j1 = 0; j1 < line_precision; j1++){
                             //calculate value equivalent of x in that pixel height for every j and subdivisions
-                            x = (float)j/(axis_density)/2.0 -(width)/(2.0*axis_density)/2.0 +(j1*(1.0/(axis_density))/line_precision) -1.0/(axis_density*2.0);
+                            x = (float)j/(axis_density)/2.0 -(width)/(2.0*axis_density)/2.0 +(j1*(1.0/(axis_density))/line_precision) -1.0/(axis_density*2.0) +xOffset;
                             if(DEBUG)printf("x%d: %f \n", j, x);
                             //y=x -> y-x~0 //input the equation in the fabs funcion
-                            if(fabs( pow(pow(y,2)+pow(x,2),2)-a*(pow(x,2)-pow(y,2)) ) < error_tolerance) { //check if pixel is in the graph
+                            //pow(pow(y1,2)+pow(x,2),2)-a*(pow(x,2)-pow(y1,2))
+                            //
+                            //
+                            if(fabs( pow(x+2,2)+pow(y,2)-2 )  < error_tolerance || fabs( pow(x-2,2)+pow(y,2)-2 )  < error_tolerance || fabs( 6*pow(x,2)+pow(y-4,2)-15 )  < error_tolerance) { //check if pixel is in the graph
                                 if(numbered_precision) pixel[j][i] = j1 + '0';
-                                else pixel[j][i] = graph_character;
+                                else pixel[j][i] = graph1_character;
                                 if(DEBUG) printf("yay");
                             }
                        }
@@ -151,7 +169,7 @@ void drawGraph(float a){
 }
 
 void inputUpdate(){
-    if(kbhit() || aStep == 0){
+    if(kbhit() || (aStep == 0 && bStep == 0)){
     printf("w,a,s,d to move; o,p to zoom; u,i to change speed");
     getchKey = getch();
     
@@ -162,8 +180,8 @@ void inputUpdate(){
         case 'a': xOffset-=moveSpeed; break;
         case 's': yOffset-=moveSpeed; break;
         case 'd': xOffset+=moveSpeed; break;
-        case 'u': moveSpeed--; break;
-        case 'i': moveSpeed++; break;
+        case 'u': moveSpeed/=2; break;
+        case 'i': moveSpeed*=2; break;
     }
     if(axis_density < 1) axis_density = 1;
     }
@@ -174,20 +192,25 @@ int main(){
     ts.tv_nsec = 200000000L; //delay in nanoseconds (long int)
     ts.tv_sec = 0;           //delay in seconds
 
-    float va = aStep;
     float a = aStart;
-    for(;; a+=va){
+    float b = bStart;
+    float va = aStep;
+    float vb = bStep;
+    for(;;){
     
         inputUpdate();
         clearScreen();
         drawAxis();
-        drawGraph(a);
+        drawGraph(a, b);
         system("cls");
         printf("a = %.2f da = %d  (z = %d; x = %d; y = %d) [dxy = %d]\n", a, aStep, axis_density, xOffset, yOffset, moveSpeed);
         printScreen();
 
-        if(aStep != 0) nanosleep(&ts, &ts2);
+        if(aStep != 0 || bStep != 0) nanosleep(&ts, &ts2);
         if(a > aMax || a < aMin) va *= -1;
+        if(b > bMax || b < bMin) vb *= -1;
+        a+=va;
+        b+=va;
     }
 }
 
