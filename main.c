@@ -42,6 +42,7 @@ int pixelx, pixely;
 float function1(float x, float a, float b){
     return sin(a*x);
 }
+#define doubleFunction 1
 float function2(float x, float a, float b){
     return cos(a*x);
 }
@@ -126,12 +127,12 @@ void drawGraph(float a, float b){
                 for(int j = 0; j < line_precision; j++){    //x precision subdivisions
                     //y pixel calculation: y_further_up-f(x + precision_subdivision)*proportion
                     y1 = round(-(function1(x+ (j*(1.0/(axis_density*2.0))/line_precision -1.0/(axis_density*4.0)) , a, b)*axis_density)+((height)/2.0))+yOffset*axis_density;
-                    y2 = round(-(function2(x+ (j*(1.0/(axis_density*2.0))/line_precision -1.0/(axis_density*4.0)) , a, b)*axis_density)+((height)/2.0))+yOffset*axis_density;
+                    if(doubleFunction) y2 = round(-(function2(x+ (j*(1.0/(axis_density*2.0))/line_precision -1.0/(axis_density*4.0)) , a, b)*axis_density)+((height)/2.0))+yOffset*axis_density;
                     if(y1 >= 0 && y1 <= height-1){            //if inside display, draw it
                         if(numbered_precision) pixel[i][(int)y1] = j + '0';
                         else pixel[i][(int)y1] = graph1_character;
                     }
-                    if(y2 >= 0 && y2 <= height-1){            //if inside display, draw it
+                    if(y2 >= 0 && y2 <= height-1 && doubleFunction){            //if inside display, draw it
                         if(numbered_precision) pixel[i][(int)y2] = j + '0';
                         else pixel[i][(int)y2] = graph2_character;
                     }
@@ -166,6 +167,10 @@ void drawGraph(float a, float b){
             }
         break;
     }
+}
+
+void drawIntersections(){
+
 }
 
 void inputUpdate(){
