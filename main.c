@@ -17,14 +17,15 @@ int     axis_density = 1;               //Pixel/graph display proportion (int > 
 #define numbered_precision 0            //whether to display the calculation index or not (0-1)
 #define error_tolerance 0.005           //error tolerance on mode 1 calculations (float)
 #define mode 0                       //0 = function, 1 = general
-#define graph1_character '@'
-#define graph2_character '#'
+#define graph1_character ','
+#define graph2_character '.'
+#define intersect_character '@'
 
 //Global Variables------------------------------------------------------------------------
 char getchKey;
-int xOffset = 0;
-int yOffset = 0;
-int moveSpeed = 1;
+float xOffset = 0;
+float yOffset = 0;
+float moveSpeed = 1;
 
 //Display pixels values
 char pixel[width][height];
@@ -33,14 +34,14 @@ int pixelx, pixely;
 //function used on mode 0, input the formula in return
 #define aMax 2
 #define aMin -2
-#define aStep 0
+#define aStep 0.1
 #define aStart 1
 #define bMax 2
 #define bMin -2
 #define bStep 0
 #define bStart 1
 float function1(float x, float a, float b){
-    return sin(a*x);
+    return pow(a*x,2);
 }
 #define doubleFunction 1
 float function2(float x, float a, float b){
@@ -87,8 +88,8 @@ void drawAxis(){
             else pixel[pixelx][i] = abs(value/axis_density-yOffset)%10 + '0';
             for(int j = 1; j <= axis_graduation_size*2; j++){
                 if((width/2)-j > 0){
-                    pixel[(width/2)+j - xOffset*axis_density*2][i] = '-';
-                    pixel[(width/2)-j - xOffset*axis_density*2][i] = '-';
+                    pixel[(width/2)+j - (int)(xOffset*axis_density*2)][i] = '-';
+                    pixel[(width/2)-j - (int)(xOffset*axis_density*2)][i] = '-';
                 }
             }
         }
@@ -105,8 +106,8 @@ void drawAxis(){
             else pixel[i][pixely] = abs(value/(axis_density*2)+xOffset)%10 + '0';
             for(int j = 1; j <= axis_graduation_size; j++){
                 if((height/2)-j > 0){
-                    pixel[i][(height/2)+j + yOffset*axis_density] = '|';
-                    pixel[i][(height/2)-j + yOffset*axis_density] = '|';
+                    pixel[i][(height/2)+j + (int)(yOffset*axis_density)] = '|';
+                    pixel[i][(height/2)-j + (int)(yOffset*axis_density)] = '|';
                 }
             }
         }
@@ -134,7 +135,8 @@ void drawGraph(float a, float b){
                     }
                     if(y2 >= 0 && y2 <= height-1 && doubleFunction){            //if inside display, draw it
                         if(numbered_precision) pixel[i][(int)y2] = j + '0';
-                        else pixel[i][(int)y2] = graph2_character;
+                        else if(pixel[i][(int)y2] != graph1_character) pixel[i][(int)y2] = graph2_character;
+                        else pixel[i][(int)y2] = intersect_character;
                     }
                 }
                 x += (float)(1.0/(axis_density*2.0));       //i++, x increment equivalent
@@ -154,9 +156,9 @@ void drawGraph(float a, float b){
                             if(DEBUG)printf("x%d: %f \n", j, x);
                             //y=x -> y-x~0 //input the equation in the fabs funcion
                             //pow(pow(y1,2)+pow(x,2),2)-a*(pow(x,2)-pow(y1,2))
+                            //fabs( pow(x+2,2)+pow(y,2)-2 )  < error_tolerance || fabs( pow(x-2,2)+pow(y,2)-2 )  < error_tolerance || fabs( 6*pow(x,2)+pow(y-4,2)-15 )  < error_tolerance)
                             //
-                            //
-                            if(fabs( pow(x+2,2)+pow(y,2)-2 )  < error_tolerance || fabs( pow(x-2,2)+pow(y,2)-2 )  < error_tolerance || fabs( 6*pow(x,2)+pow(y-4,2)-15 )  < error_tolerance) { //check if pixel is in the graph
+                            if(fabs(pow(pow(y1,2)+pow(x,2),2)-a*(pow(x,2)-pow(y1,2))) < error_tolerance) { //check if pixel is in the graph
                                 if(numbered_precision) pixel[j][i] = j1 + '0';
                                 else pixel[j][i] = graph1_character;
                                 if(DEBUG) printf("yay");
@@ -175,20 +177,21 @@ void drawIntersections(){
 
 void inputUpdate(){
     if(kbhit() || (aStep == 0 && bStep == 0)){
-    printf("w,a,s,d to move; o,p to zoom; u,i to change speed");
-    getchKey = getch();
-    
-    switch(getchKey){
-        case 'p': axis_density++; break;
-        case 'o': axis_density--; break;
-        case 'w': yOffset+=moveSpeed; break;
-        case 'a': xOffset-=moveSpeed; break;
-        case 's': yOffset-=moveSpeed; break;
-        case 'd': xOffset+=moveSpeed; break;
-        case 'u': moveSpeed/=2; break;
-        case 'i': moveSpeed*=2; break;
-    }
-    if(axis_density < 1) axis_density = 1;
+        printf("w,a,s,d to move; o,p to zoom; u,i to change speed");
+        getchKey = getch();
+        
+        switch(getchKey){
+            case 'p': axis_density++; break;
+            case 'o': axis_density--; break;
+            case 'w': yOffset+=moveSpeed; break;
+            case 'a': xOffset-=moveSpeed; break;
+            case 's': yOffset-=moveSpeed; break;
+            case 'd': xOffset+=moveSpeed; break;
+            case 'u': moveSpeed/=2; break;
+            case 'i': moveSpeed*=2; break;
+        }
+        if(axis_density < 1) axis_density = 1;
+        if(moveSpeed < 1) moveSpeed = 1;
     }
 }
 
@@ -208,7 +211,7 @@ int main(){
         drawAxis();
         drawGraph(a, b);
         system("cls");
-        printf("a = %.2f da = %d  (z = %d; x = %d; y = %d) [dxy = %d]\n", a, aStep, axis_density, xOffset, yOffset, moveSpeed);
+        printf("a = %.2f da = %0.1f  (z = %d; x = %0.1f; y = %0.1f) [dxy = %0.1f]\n", a, aStep, axis_density, xOffset, yOffset, moveSpeed);
         printScreen();
 
         if(aStep != 0 || bStep != 0) nanosleep(&ts, &ts2);
@@ -224,3 +227,4 @@ int main(){
 //-(float)i/(axis_density)                      //each i lowers y until its on the bottom of the display
 //+(i1*(1.0/(axis_density*2.0))/line_precision) //for each i the value is subdivided by <precision> up and down
 //-1.0/(axis_density*4.0);                      //starting from lower values and incrementing to top values by i1
+//+yOffset                                      //compensate the camera movement
