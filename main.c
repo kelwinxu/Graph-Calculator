@@ -7,19 +7,19 @@
 
 //--configurations------------------------------------------------------------------------
 #define DEBUG 0
-#define height 20                       //Display height (int > 0)
-#define width 60                       //Display width (best if a*height)
+#define height 15                       //Display height (int > 0)
+#define width 30                       //Display width (best if a*height)
 #define background_density -1           //Display dotted background (-1 for none)
-int     axis_density = 1;               //Pixel/graph display proportion (int > 0) (also known as Zoom)
+int     axis_density = 5;               //Pixel/graph display proportion (int > 0) (also known as Zoom)
 #define axis_numbered_graduation 1      //whether to display a value on each graduation (0-1)   ///broken
 #define axis_graduation_size 0        //axis number indication size extension (int <= 0)
-#define line_precision 100              //Number of repeated calculations (int > 0)
-#define numbered_precision 0            //whether to display the calculation index or not (0-1)
+#define line_precision 50              //Number of repeated calculations (int > 0)
+#define numbered_precision 1            //whether to display the calculation index or not (0-1)
 #define error_tolerance 0.005           //error tolerance on mode 1 calculations (float)
-#define mode 0                       //0 = function, 1 = general
-#define graph1_character ','
-#define graph2_character '.'
-#define intersect_character '@'
+#define mode 1                       //0 = function, 1 = general
+#define graph1_character '#'
+#define graph2_character '@'
+#define intersect_character 'O'
 
 //Global Variables------------------------------------------------------------------------
 char getchKey;
@@ -148,17 +148,17 @@ void drawGraph(float a, float b){
                 for(int i1 = 0; i1 < line_precision; i1++){     //y precision subdivisions
                     //calculate value equivalent of y in that pixel height for every i and subdivisions
                     y = (height)/(2.0*axis_density) -(float)i/(axis_density) +(i1*(1.0/(axis_density*2.0))/line_precision) -1.0/(axis_density*4.0) +yOffset;
-                    if(DEBUG) printf("y1%d: %f \n", i, y);     //for every vertical pixel j
+                    if(DEBUG) printf("y%d: %f \n", i, y);     //for every vertical pixel j
                     for(int j = 0; j < width; j++){             //y precision subdivisions
                         for(int j1 = 0; j1 < line_precision; j1++){
                             //calculate value equivalent of x in that pixel height for every j and subdivisions
                             x = (float)j/(axis_density)/2.0 -(width)/(2.0*axis_density)/2.0 +(j1*(1.0/(axis_density))/line_precision) -1.0/(axis_density*2.0) +xOffset;
                             if(DEBUG)printf("x%d: %f \n", j, x);
                             //y=x -> y-x~0 //input the equation in the fabs funcion
-                            //pow(pow(y1,2)+pow(x,2),2)-a*(pow(x,2)-pow(y1,2))
+                            //pow(pow(y,2)+pow(x,2),2)-a*(pow(x,2)-pow(y,2))
                             //fabs( pow(x+2,2)+pow(y,2)-2 )  < error_tolerance || fabs( pow(x-2,2)+pow(y,2)-2 )  < error_tolerance || fabs( 6*pow(x,2)+pow(y-4,2)-15 )  < error_tolerance)
                             //
-                            if(fabs(pow(pow(y1,2)+pow(x,2),2)-a*(pow(x,2)-pow(y1,2))) < error_tolerance) { //check if pixel is in the graph
+                            if(fabs(pow(pow(y,2)+pow(x,2),2)-a*(pow(x,2)-pow(y,2))) < error_tolerance) { //check if pixel is in the graph
                                 if(numbered_precision) pixel[j][i] = j1 + '0';
                                 else pixel[j][i] = graph1_character;
                                 if(DEBUG) printf("yay");
@@ -169,10 +169,6 @@ void drawGraph(float a, float b){
             }
         break;
     }
-}
-
-void drawIntersections(){
-
 }
 
 void inputUpdate(){
